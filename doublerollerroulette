@@ -1,0 +1,117 @@
+#include <FastLED.h>
+
+#define NUM_LEDS 12
+#define PIN_BUTTON 2
+#define PIN_ROULETTE_1 6
+#define PIN_ROULETTE_2 7
+#define RANDOM_SEED_PIN A0 // Unconnected analog pin for random seed
+
+CRGB leds1[NUM_LEDS];
+CRGB leds2[NUM_LEDS];
+
+const int buttonDebounceDelay = 50; // button debounce delay in milliseconds
+unsigned long lastDebounceTime = 0; // the last time the button state was toggled
+bool buttonState = false;
+bool lastButtonState = false;
+
+void setup() {
+  pinMode(PIN_BUTTON, INPUT_PULLUP);
+  FastLED.addLeds<WS2811, PIN_ROULETTE_1, GRB>(leds1, NUM_LEDS);
+  FastLED.addLeds<WS2811, PIN_ROULETTE_2, GRB>(leds2, NUM_LEDS);
+  FastLED.clear();
+  FastLED.show();
+  
+  // Seed the random number generator
+  randomSeed(analogRead(RANDOM_SEED_PIN));
+}
+
+void loop() {
+  if (digitalRead(PIN_BUTTON) == LOW) {
+    unsigned long currentMillis = millis();
+    if (currentMillis - lastDebounceTime > buttonDebounceDelay) {
+      lastDebounceTime = currentMillis;
+      buttonState = !buttonState;
+    }
+  }
+
+  if (buttonState) {
+    int result1 = spinRoulette(leds1, PIN_ROULETTE_1);
+    blinkRoulette(leds1, result1); // Highlight the stopped position
+
+    int result2 = spinRoulette(leds2, PIN_ROULETTE_2);
+    blinkRoulette(leds2, result2);
+
+    if (result1 == result2) {
+      blinkTogether(leds1, leds2, result1, result2, 10);
+    }
+    
+    buttonState = false; // reset button state
+  } else {
+    attractionMode();
+  }
+}
+
+void attractionMode() {
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds1[i] = CHSV(random(0, 255), 255, 255);
+    leds2[i] = CHSV(random(0, 255), 255, 255);
+  }
+  FastLED.show();
+  delay(100);
+}
+
+int spinRoulette(CRGB *leds, int pin) {
+  int randomStop = random(0, NUM_LEDS);
+  int speed = 20; // Initial speed
+  unsigned long startTime = millis();
+  unsigned long spinDuration = 3500; // Spin duration in milliseconds
+
+  while (millis() - startTime < spinDuration) {
+    for (int i = 0; i < NUM_LEDS; i++) {
+      leds[i] = CHSV(random(0, 255), 255, 255);
+    }
+    FastLED.show();
+    delay(speed);
+    for (int i = 0; i < NUM_LEDS; i++) {
+      leds[i] = CRGB::Black;
+    }
+    FastLED.show();
+    speed = speed + 1; // Increment speed to slow down gradually
+  }
+
+  leds[randomStop] = CHSV(random(0, 255), 255, 255);
+  FastLED.show();
+  return randomStop;
+}
+
+void blinkRoulette(CRGB *leds, int stopPosition) {
+  for (int i = 0; i < 6; i++) {
+    for (int j = 0; j < NUM_LEDS; j++) {
+      leds[j] = CRGB::Black; // All other LEDs off
+    }
+    leds[stopPosition] = CHSV(random(0, 255), 255, 255); // Blink the stopped position
+    FastLED.show();
+    delay(200);
+    leds[stopPosition] = CRGB::Black;
+    FastLED.show();
+    delay(200);
+  }
+  leds[stopPosition] = CHSV(random(0, 255), 255, 255); // Keep the stopped position highlighted
+  FastLED.show();
+}
+
+void blinkTogether(CRGB *leds1, CRGB *leds2, int stopPosition1, int stopPosition2, int times) {
+  for (int i = 0; i < times; i++) {
+    leds1[stopPosition1] = CHSV(random(0, 255), 255, 255);
+    leds2[stopPosition2] = CHSV(random(0, 255), 255, 255);
+    FastLED.show();
+    delay(200);
+    leds1[stopPosition1] = CRGB::Black;
+    leds2[stopPosition2] = CRGB::Black;
+    FastLED.show();
+    delay(200);
+  }
+  leds1[stopPosition1] = CHSV(random(0, 255), 255, 255); // Re-highlight the stopped position on both roulettes
+  leds2[stopPosition2] = CHSV(random(0, 255), 255, 255);
+  FastLED.show();
+} 
