@@ -61,27 +61,25 @@ void attractionMode() {
 }
 
 int spinRoulette(CRGB *leds, int pin) {
-  int randomStop = random(0, NUM_LEDS);
-  int speed = 20; // Initial speed
-  unsigned long startTime = millis();
-  unsigned long spinDuration = 3500; // Spin duration in milliseconds
+    int stopPosition = random(0, NUM_LEDS);
+    int speed = 20; // Initial speed
+    unsigned long startTime = millis();
+    unsigned long spinDuration = 3500; // Spin duration in milliseconds
 
-  while (millis() - startTime < spinDuration) {
-    for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = CHSV(random(0, 255), 255, 255);
+    while (millis() - startTime < spinDuration) {
+        for (int i = 0; i < NUM_LEDS; i++) {
+            leds[i] = CRGB::Black;
+        }
+        leds[(millis() / speed) % NUM_LEDS] = CHSV(random(0, 255), 255, 255);
+        FastLED.show();
+        delay(speed);
+        speed += 1; // Increment speed to slow down gradually
     }
-    FastLED.show();
-    delay(speed);
-    for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = CRGB::Black;
-    }
-    FastLED.show();
-    speed = speed + 1; // Increment speed to slow down gradually
-  }
 
-  leds[randomStop] = CHSV(random(0, 255), 255, 255);
-  FastLED.show();
-  return randomStop;
+    // Final stop position highlight
+    leds[stopPosition] = CHSV(random(0, 255), 255, 255);
+    FastLED.show();
+    return stopPosition;
 }
 
 void blinkRoulette(CRGB *leds, int stopPosition) {
